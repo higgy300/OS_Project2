@@ -1,6 +1,6 @@
 CFLAGS = -O
 CC = g++
-SRC = main.cpp MemoryManager.cpp
+SRC = SampleTestP2.cpp MemoryManager.cpp
 OBJ = $(SRC:.cpp = .o)
 
 memory_manager: $(OBJ)
