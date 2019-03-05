@@ -4,7 +4,7 @@
 #include <exception>
 #include <stdexcept>
 #include <iostream>
-
+#include "MemoryManager.h"
 # define OUT_PATH "mnt/ubuntu/home/reptilian/logs/"
 
 
@@ -24,6 +24,10 @@ JNIEXPORT void JNICALL
 Java_edu_ufl_cise_os_p2_P2Activity_initMemoryManager(JNIEnv *env,jobject,jint maxAllocationSize){
     // TODO:
     // Function should initialize your Memory Manager object with the specified word size;
+    MemoryManager mm = MemoryManager(maxAllocationSize, nullptr_t);
+
+
+
 }
 
 extern "C"

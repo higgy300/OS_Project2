@@ -1,15 +1,12 @@
 #include <utility>
+
 #include <cstring>
-#include <unistd.h>
+//#include <unistd.h>
 #include <cstdint>
 #include <functional>
 #include <vector>
 #include <cmath>
 #include <iostream>
-#include <cstdlib>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/syscall.h>
 #include "MemoryManager.h"
 
 #define MAX_WORDS 65536
@@ -41,6 +38,10 @@ MemoryManager::MemoryManager(unsigned wordSize, std::function<int(int, void*)> a
 MemoryManager::~MemoryManager() {
     // Deallocate every dynamic variable and vector
     shutdown();
+
+    /* Make object commit suicide (CANNOT USE class fields or functions through
+       this object anymore */
+    delete this;
 }
 
 /* Instantiates a new block of memory of requested size,
@@ -48,7 +49,6 @@ MemoryManager::~MemoryManager() {
 void MemoryManager::initialize(size_t sizeInWords) {
     // Check if sizeInWords is less than the limit of 65536
     if (sizeInWords < MAX_WORDS) {
-        initialized = true;
         //num_of_words = static_cast<uint16_t>(ceil((double)sizeInWords / (double)word_size));
         // How many blocks of one byte are needed to allocate this space?
         memory_byte_blocks = static_cast<uint32_t>(word_size * sizeInWords);
@@ -96,17 +96,12 @@ void MemoryManager::initialize(size_t sizeInWords) {
 
 /* Releases memory block acquired during initialization. */
 void MemoryManager::shutdown() {
-    /* To prevent this function from being called twice in a row.
-       the variable initialized will only change to true after initialize
-       is called and it will only change to false after shutdown is called.
-       This maintains a one to one ratio to prevent segmentation faults. */
-    if (initialized) {
-        initialized = false;
-        delete[]memory_addr;
-        delete[]memory_bitmap;
-        std::vector<uint16_t>().swap(hole_list);
-        std::vector<uint16_t>().swap(proc_list);
-    }
+    delete []memory_addr;
+	memory_addr = nullptr;
+    delete []memory_bitmap;
+	memory_bitmap = nullptr;
+    std::vector<uint16_t >().swap(hole_list);
+    std::vector<uint16_t >().swap(proc_list);
 }
 
 /* Allocates a block of memory. If no memory is available or
@@ -209,42 +204,20 @@ void MemoryManager::setAllocator(std::function<int(int, void*)> allocator) {
    Format: "[START, LENGTH] - [START, LENGTH] ... "
    example:  [0,10] - [12,2] - [20,6]             */
 int MemoryManager::dumpMemoryMap(char *filename) {
-    std::string txt = "[" + std::to_string(hole_list[1]) +
-                      "," + std::to_string(hole_list[2]);
-    for (int i = 3; i < hole_list.size() - 1; i++) {
-        txt += "] - [" + std::to_string(hole_list[i]) + "," +
-               std::to_string(hole_list[i + 1]);
-    }
-    txt += "]";
-    //std::cout << txt << std::endl;
 
-    //int fd1 = open(filename, O_WRONLY | O_CREAT);
-    //char buf[txt.length()];
-    /*if (fd1 == -1) {
-        perror("File not opened.\n");
-        return EXIT_FAILURE;
-    }*/
-
-    // read the buffer of stuff we are writing to file
-    //scanf("%[SIZE OF BUFFER HERE]s", buf);
-
-    //write(fd1, buf, strlen(buf));
-
-    //close(fd1);
-    return 0;
 }
 
 
 /* Returns a byte-stream of information (in binary) about
  * holes for use by the allocator function(little-Endian). */
 void* MemoryManager::getList() {
-    auto *ptrr = new uint16_t[hole_list.size()];
+    uint16_t *ptrr = new uint16_t[hole_list.size()];
 
     for (int i = 0; i < hole_list.size(); i++) {
-        //std::cout << hole_list[i] << " ";
+        std::cout << hole_list[i] << " ";
         ptrr[i] = hole_list[i];
     }
-    //std::cout << std::endl;
+    std::cout << std::endl;
 
     return ptrr;
 }

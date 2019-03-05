@@ -72,7 +72,6 @@ private:
     uint16_t bitmap_size;
     uint16_t num_of_words;
     uint16_t size_in_words;
-    bool initialized;
     uint32_t memory_byte_blocks;
     uint8_t *memory_addr;
     uint8_t *memory_bitmap;
