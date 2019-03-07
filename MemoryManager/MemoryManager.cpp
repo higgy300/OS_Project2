@@ -209,28 +209,29 @@ void MemoryManager::setAllocator(std::function<int(int, void*)> allocator) {
    Format: "[START, LENGTH] - [START, LENGTH] ... "
    example:  [0,10] - [12,2] - [20,6]             */
 int MemoryManager::dumpMemoryMap(char *filename) {
-    std::string txt = "[" + std::to_string(hole_list[1]) +
-                      "," + std::to_string(hole_list[2]);
-    for (int i = 3; i < hole_list.size() - 1; i++) {
-        txt += "] - [" + std::to_string(hole_list[i]) + "," +
-               std::to_string(hole_list[i + 1]);
-    }
-    txt += "]";
-    //std::cout << txt << std::endl;
-
-    //int fd1 = open(filename, O_WRONLY | O_CREAT);
-    //char buf[txt.length()];
-    /*if (fd1 == -1) {
+	int fd1 = open(filename, O_WRONLY | O_CREAT, S_IRWXU);
+	if (fd1 == -1) {
         perror("File not opened.\n");
-        return EXIT_FAILURE;
-    }*/
-
-    // read the buffer of stuff we are writing to file
-    //scanf("%[SIZE OF BUFFER HERE]s", buf);
-
-    //write(fd1, buf, strlen(buf));
-
-    //close(fd1);
+        return -1;
+    } else {
+		std::string txt = "[" + std::to_string(hole_list[1]) + 
+			", " + std::to_string(hole_list[2]);
+		
+		for (int i = 3; i < hole_list.size() - 1; i++) {
+			txt += "] - [" + std::to_string(hole_list[i]) + ", " +
+				std::to_string(hole_list[i + 1]);
+		}
+		txt += "]";
+		char buf[txt.length()];
+		
+		for (int i = 0; i < txt.length() + 1; i++) {
+			buf[i] = txt[i];
+		}
+		
+		write(fd1, buf, strlen(buf));
+	}
+	
+	close(fd1);
     return 0;
 }
 

@@ -21,13 +21,12 @@ Java_edu_ufl_cise_os_p2_P2Activity_stringFromJNI(
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_edu_ufl_cise_os_p2_P2Activity_initMemoryManager(JNIEnv *env,jobject,jint maxAllocationSize){
+Java_edu_ufl_cise_os_p2_P2Activity_initMemoryManager(JNIEnv *env,jobject obj,jint maxAllocationSize){
     // TODO:
     // Function should initialize your Memory Manager object with the specified word size;
-    MemoryManager mm = MemoryManager(maxAllocationSize, nullptr_t);
-
-
-
+    MemoryManager mm = MemoryManager((uint32_t)maxAllocationSize, bestFit);
+    jclass localClass = env->FindClass("MemoryManager");
+    jclass globalClass = reinterpret_cast<jclass>(env->NewGlobalRef(localClass));
 }
 
 extern "C"
