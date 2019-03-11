@@ -26,9 +26,8 @@ MemoryManager::MemoryManager(unsigned wordSize, std::function<int(int, void*)> a
        a word size cannot be greater than 16 bytes. That's 64 bits */
     if (wordSize <= MAX_WORD_SIZE_IN_BYTES && wordSize > 0)
         word_size = static_cast<uint16_t>(wordSize);
-    else if (wordSize == 0) // If the wordSize is zero, throw an exception
-        // TODO:********What do I do when word is 0 bytes?
-        std::cout << INVALID_WORD_SIZE << std::endl;
+    else if (wordSize == 0) // If the wordSize is zero
+        word_size = 2;
     else // If the word size is greater than 16 bytes, use max of 16 bytes by default
         word_size = MAX_WORD_SIZE_IN_BYTES;
 
@@ -47,50 +46,55 @@ MemoryManager::~MemoryManager() {
  * no larger than 65536. Hint: you may use new char[...] */
 void MemoryManager::initialize(size_t sizeInWords) {
     // Check if sizeInWords is less than the limit of 65536
-    if (sizeInWords < MAX_WORDS) {
-        initialized = true;
-        //num_of_words = static_cast<uint16_t>(ceil((double)sizeInWords / (double)word_size));
-        // How many blocks of one byte are needed to allocate this space?
-        memory_byte_blocks = static_cast<uint32_t>(word_size * sizeInWords);
+	if (!initialized) {
+		if (sizeInWords < MAX_WORDS) {
+			initialized = true;
+			//num_of_words = static_cast<uint16_t>(ceil((double)sizeInWords / (double)word_size));
+			// How many blocks of one byte are needed to allocate this space?
+			memory_byte_blocks = static_cast<uint32_t>(word_size * sizeInWords);
+			
+			std::vector<uint16_t> temp;
+			
+			// Allocate the space
+			auto *memAddr = new uint8_t[memory_byte_blocks];
 
-        // Allocate the space
-        auto *memAddr = new uint8_t[memory_byte_blocks];
+			// Initialize memory spaces to zero
 
-        // Initialize memory spaces to zero
+			// Store the starting address to the class object
+			memory_addr = memAddr;
 
-        // Store the starting address to the class object
-        memory_addr = memAddr;
+			/* Calculate how many blocks of 2 bytes are required to keep track of
+			   each word to be allocated in the giant block of memory and store it
+			   to the class object to be able to iterate later */
+			auto _bitmap_size = static_cast<uint16_t>(sizeInWords + 2);
+			bitmap_size = _bitmap_size;
 
-        /* Calculate how many blocks of 2 bytes are required to keep track of
-           each word to be allocated in the giant block of memory and store it
-           to the class object to be able to iterate later */
-        auto _bitmap_size = static_cast<uint16_t>(sizeInWords + 2);
-        bitmap_size = _bitmap_size;
+			// allocate the bitmap space
+			auto *bitmap = new uint8_t[_bitmap_size];
+			// Initialize everything in bitmap to 0
+			for (int i = 0; i < _bitmap_size; i++)
+				bitmap[i] = 0;
+			// Save the initial bitmap address to the class object
+			memory_bitmap = bitmap;
 
-        // allocate the bitmap space
-        auto *bitmap = new uint8_t[_bitmap_size];
-        // Initialize everything in bitmap to 0
-        for (int i = 0; i < _bitmap_size; i++)
-            bitmap[i] = 0;
-        // Save the initial bitmap address to the class object
-        memory_bitmap = bitmap;
+			// Store stream length in first two bytes of bitmap
+			auto low_byte = (uint8_t)_bitmap_size;
+			auto high_byte = (uint8_t)(_bitmap_size >> 8);
+			memory_bitmap[0] = high_byte;
+			memory_bitmap[1] = low_byte;
 
-        // Store stream length in first two bytes of bitmap
-        auto low_byte = (uint8_t)_bitmap_size;
-        auto high_byte = (uint8_t)(_bitmap_size >> 8);
-        memory_bitmap[0] = high_byte;
-        memory_bitmap[1] = low_byte;
+			// Mark all words in bitmap as free
+			updateBitmap(2, _bitmap_size, false);
 
-        // Mark all words in bitmap as free
-        updateBitmap(2, _bitmap_size, false);
-
-        /* Initialize list (4 = number of bytes), (0 = initial offset)
-         * sizeInWords is the length of the hole in words */
-        hole_list.push_back(4);
-        hole_list.push_back(0);
-        hole_list.push_back(static_cast<unsigned short &&>(sizeInWords));
-
-    } //else
+			/* Initialize list (4 = number of bytes), (0 = initial offset)
+			 * sizeInWords is the length of the hole in words */
+			temp.push_back(4);
+			temp.push_back(0);
+			temp.push_back(static_cast<unsigned short &&>(sizeInWords));
+			hole_list.swap(temp);
+		}
+	}
+     //else
     //TODO:*************throw exception when sizeInWords is 0
 }
 
@@ -119,7 +123,6 @@ void* MemoryManager::allocate(size_t sizeInBytes) {
     /* Calculate how many bytes are required to be able to allocate
      * from the giant block of memory */
     auto num_words_required = static_cast<uint16_t>(ceil((double)sizeInBytes / (double) word_size));
-    size_t num_of_blocks_needed = num_words_required * word_size;
 
     /* Call the allocation algorithm currently assigned to the class object
      * to obtain the offset of starting memory address. Offset is the number
